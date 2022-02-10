@@ -185,7 +185,7 @@ class SchemaRegistrySerializerDeserializer:
 
 def read_value(schema: TypedSchema, bio: io.BytesIO):
     if schema.schema_type is SchemaType.AVRO:
-        reader = DatumReader(schema.schema)
+        reader = DatumReader(writers_schema=schema.schema)
         return reader.read(BinaryDecoder(bio))
     if schema.schema_type is SchemaType.JSONSCHEMA:
         value = ujson.load(bio)
@@ -207,7 +207,7 @@ def read_value(schema: TypedSchema, bio: io.BytesIO):
 
 def write_value(schema: TypedSchema, bio: io.BytesIO, value: dict) -> None:
     if schema.schema_type is SchemaType.AVRO:
-        writer = DatumWriter(schema.schema)
+        writer = DatumWriter(writers_schema=schema.schema)
         writer.write(value, BinaryEncoder(bio))
     elif schema.schema_type is SchemaType.JSONSCHEMA:
         try:
@@ -236,7 +236,7 @@ class SchemaRegistrySerializer(SchemaRegistrySerializerDeserializer):
                 return bio.getvalue()
             except ProtobufTypeException as e:
                 raise InvalidMessageSchema("Object does not fit to stored schema") from e
-            except avro.io.AvroTypeException as e:
+            except avro.errors.AvroTypeException as e:
                 raise InvalidMessageSchema("Object does not fit to stored schema") from e
 
 
@@ -254,7 +254,7 @@ class SchemaRegistryDeserializer(SchemaRegistrySerializerDeserializer):
                     raise InvalidPayload("No schema with ID from payload")
                 ret_val = read_value(schema, bio)
                 return ret_val
-            except AssertionError as e:
+            except (UnicodeDecodeError, TypeError) as e:
                 raise InvalidPayload("Data does not contain a valid message") from e
-            except avro.io.SchemaResolutionException as e:
+            except avro.errors.SchemaResolutionException as e:
                 raise InvalidPayload("Data cannot be decoded with provided schema") from e
