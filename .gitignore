@@ -12,6 +12,5 @@ __pycache__/
 /dist/
 /karapace.egg-info/
 /karapace-rpm-src.tar
-/rpm/
 venv
 /karapace/version.py
